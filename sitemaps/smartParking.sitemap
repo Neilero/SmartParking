@@ -1,10 +1,12 @@
 sitemap SmartParking label="Smart Parking Sitemap" {
     
-    Frame label="First frame" icon="icon" {
-        Text item=Item
-    }
-    
-    Frame label="Second frame" {
-        Group item=OtherItem
+    Frame label="Phone services" {
+        Switch item=bookPlace label="Réserver une place"
+
+        Frame label="Booking actions" visibility=[bookPlace==ON] {
+            Switch item=enterCode label="Utiliser le digicode" 
+            Switch item=emitIRCode label="Emettre le signal infrarouge"
+            Switch item=payPlace label="Payer la place" 
+        }
     }
 }

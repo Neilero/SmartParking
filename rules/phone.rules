@@ -1,0 +1,59 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
+
+val FileTag = "Smart Parking - Phone services rules"
+
+var bookedPlace = null
+var bookingDigicode = null
+var bookingIRCode   = null
+var paiementDone = false
+
+
+rule "Réserver une place"
+when
+    Item bookPlace changed from OFF to ON
+then
+    //TODO : see how to set the booking's digit and IR codes
+end 
+
+
+rule "Annuler une réservation"
+when
+    Item bookPlace changed from ON to OFF
+then
+    //TODO : send command to cancel reservation
+
+    // reset vars
+    bookedPlace = null
+    bookingDigicode = null
+    bookingIRCode   = null
+    paiementDone = false
+end
+
+rule "Utiliser le digicode"
+when
+    Item enterCode changed
+then
+    if (bookedPlace != null) {
+        val bookedPlaceDigicode = ScriptServiceUtil.getItemRegistry.getItem("digicode" + bookedPlace)
+        bookedPlaceDigicode.sendCommand(bookingDigicode)
+    }
+end
+
+rule "Emettre le signal infrarouge"
+when
+    Item emitIRCode changed
+then
+    if (bookedPlace != null) {
+        val bookedPlaceIRSensor = ScriptServiceUtil.getItemRegistry.getItem("infrared" + bookedPlace)
+        bookedPlaceIRSensor.sendCommand(bookingIRCode)
+    }
+end
+
+rule "Effectuer le paiement de la place"
+when
+    Item payPlace changed
+then
+    if (bookedPlace != null) {
+        //TODO see how to send command for paiement
+    }
+end

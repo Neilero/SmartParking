@@ -1,0 +1,6 @@
+Group phoneServices
+
+Switch bookPlace "Réserver une place" <switch> (phoneServices)
+Switch enterCode "Utiliser le digicode" <switch> (phoneServices)
+Switch emitIRCode "Emettre le signal infrarouge" <switch> (phoneServices)
+Switch payPlace "Payer la place" <switch> (phoneServices)

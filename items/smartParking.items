@@ -29,7 +29,7 @@ Switch led1A01 "Led" (Place1A01)
 Switch barriere1A01 "Barriere" (Barriere)
 String camera1A01 "Camera" (Place1A01)
 Number infrared1A01 "Infrared sensor" (Place1A01)
-Number digitcode1A01 "Digitcode" (Place1A01)
+Number digicode1A01 "Digitcode" (Place1A01)
 
 Group Place1A02 (AreaA, Place)
 Switch carDetector1A02 "Car detector" (Place1A02)

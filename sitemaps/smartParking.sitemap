@@ -1,10 +1,36 @@
-sitemap SmartParking label="Smart Parking Sitemap" {
+sitemap smartParking label="Smart Parking Sitemap" {
     
-    Frame label="First frame" icon="icon" {
-        Text item=Item
+    Frame label="Global Status"  {
+        Text item=entryPanel label="Nombre de places totales disponibles au 1er etage [%d /4] "
     }
     
-    Frame label="Second frame" {
-        Group item=OtherItem
+    Frame label="Floor 1" {
+        Frame label="Area A" {
+            Text item=panel1A label="Nombre de places disponibles dans la zone A [%d /2] "
+            Frame label="Place 1A_1" {
+                Switch item=carDetector1A_1 label="Car detector"
+                Switch item=led1A_1 label="Led" icon="light"
+                Switch item=barriere1A_1 label="Barriere"
+                Text item=camera1A_1 label="Camera" 
+                Text item=infrared1A_1 label="Infrared sensor" 
+                Text item=digitcode1A_1 label="Digitcode" 
+            }
+            Frame label="Place 1A_2" {
+                Switch item=carDetector1A_2 label="Car detector" 
+                Switch item=led1A_2 label="Led" icon="light"
+            }
+        }
+        Frame label="Area B" {
+            Text item=panel1B label="Nombre de places disponibles dans la zone B [%d /2] "
+            Frame label="Place 1B_3" {
+                Switch item=carDetector1B_3 label="Car detector"
+                Switch item=led1B_3 label="Led" icon="light"
+            }
+            Frame label="Place 1B_4" {
+                Switch item=carDetector1B_4 label="Car detector" 
+                Switch item=led1B_4 label="Led" icon="light" 
+            }
+        }
     }
+    
 }

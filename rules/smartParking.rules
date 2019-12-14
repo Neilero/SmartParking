@@ -1,0 +1,121 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
+import org.eclipse.smarthome.core.library.items.StringItem
+import java.util.ArrayList
+
+val TAG_FileName = "smartParking.rules"
+val NbplacesA = 2
+val NbplacesB = 2
+var Number NbplacesAdispo 
+var Number NbplacesBdispo
+var Number Nbplacestotal 
+//val traceAll
+
+val initSensors = [ |
+    entryPanel.postUpdate(4)
+    panel1A.postUpdate(2)   
+    panel1B.postUpdate(2) 
+    carDetector1A_1.postUpdate(OFF)
+    carDetector1A_2.postUpdate(OFF) 
+    carDetector1B_3.postUpdate(OFF)
+    carDetector1B_4.postUpdate(OFF)
+    led1A_1.postUpdate(OFF)
+    led1A_2.postUpdate(OFF)
+    led1B_3.postUpdate(OFF)
+    led1B_4.postUpdate(OFF)
+]
+
+val getJ = [ String name, String separator |    
+    var int j
+    j=name.substringAfter(separator)
+	return Integer::parseInt(j)
+]
+//rule "Démarrage de openHAB" ligne106
+rule "Démarrage de openHAB"
+when
+    System started
+then
+    logInfo(TAG_FileName, "Rule : Démarrage de openHAB")
+    NbplacesAdispo = NbplacesA
+    NbplacesBdispo = NbplacesB
+    initSensors.apply()
+end
+//rule "Arrêt de openHAB"  ligne137
+rule "Arrêt de openHAB" 
+when
+    System shuts down
+then
+    logInfo(TAG_FileName, " Rule : Arrêt de openHAB")
+    // sauvegarder les états des items et le contexte
+end
+
+rule "decrementer places disponibles dans la zone A" 
+when
+    Member of DetectorsAreaA changed from OFF to ON
+then
+    logInfo(TAG_FileName, "Rule : decrementer places disponibles dans la zone A")
+    NbplacesAdispo = NbplacesAdispo - 1
+    panel1A.postUpdate(NbplacesAdispo)
+    logInfo(TAG_FileName,triggeringItem.name)
+    var PlaceIn = getJ.apply(triggeringItem.name, "_")
+    LedAreaA.members.forEach[ motionSensor | 
+        var jMotionSensor = getJ.apply(motionSensor.name, "_")    
+        if ( jMotionSensor == PlaceIn ) {
+            motionSensor.sendCommand(ON)
+        } 
+    ] 
+end
+
+rule "Incrementer places disponibles dans la zone A" 
+when
+    Member of DetectorsAreaA changed from ON to OFF 
+then
+    logInfo(TAG_FileName, "Rule : Incrementer places disponibles dans la zone A")
+    NbplacesAdispo = NbplacesAdispo + 1
+    panel1A.postUpdate(NbplacesAdispo) 
+    var PlaceIn = getJ.apply(triggeringItem.name, "_")
+    LedAreaA.members.forEach[ motionSensor | 
+        var jMotionSensor = getJ.apply(motionSensor.name, "_")    
+        if ( jMotionSensor == PlaceIn ) {
+            motionSensor.sendCommand(OFF)
+        } 
+    ] 
+end
+rule "decrementer places disponibles dans la zone B" 
+when
+    Member of DetectorsAreaB changed from OFF to ON
+then
+    logInfo(TAG_FileName, "Rule : decrementer places disponibles dans la zone B")
+    NbplacesBdispo = NbplacesBdispo - 1
+    panel1B.postUpdate(NbplacesBdispo)
+    var PlaceIn = getJ.apply(triggeringItem.name, "_")
+    LedAreaB.members.forEach[ motionSensor | 
+        var jMotionSensor = getJ.apply(motionSensor.name, "_")    
+        if ( jMotionSensor == PlaceIn ) {
+            motionSensor.sendCommand(ON)
+        } 
+    ] 
+end
+
+rule "Incrementer places disponibles dans la zone B" 
+when
+    Member of DetectorsAreaB changed from ON to OFF 
+then
+    logInfo(TAG_FileName, "Rule : Incrementer places disponibles dans la zone B")
+    NbplacesBdispo = NbplacesBdispo + 1
+    panel1B.postUpdate(NbplacesBdispo) 
+    var PlaceIn = getJ.apply(triggeringItem.name, "_")
+    LedAreaB.members.forEach[ motionSensor | 
+        var jMotionSensor = getJ.apply(motionSensor.name, "_")    
+        if ( jMotionSensor == PlaceIn ) {
+            motionSensor.sendCommand(OFF)
+        } 
+    ] 
+end
+rule "Mettre a jour le nombre total de places dans le premier etage" 
+when
+    Member of Panel1 changed
+then
+    logInfo(TAG_FileName, "Rule : Mettre a jour le nombre total de places dans le premier etage")
+    Nbplacestotal = NbplacesBdispo + NbplacesAdispo
+    entryPanel.postUpdate(Nbplacestotal)
+end

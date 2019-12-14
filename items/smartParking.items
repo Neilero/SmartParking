@@ -6,6 +6,10 @@ Group AreaB (Parking)
 // logistic groups
 Group:Switch:OR(ON, OFF) Barriere (Parking)
 Group:Switch:OR(ON, OFF) Place (Parking)
+Group:Switch:OR(ON,OFF) DetectorsAreaA (AreaA)
+Group:Switch:OR(ON,OFF) DetectorsAreaB (AreaB)
+Group:Switch:OR(ON,OFF) LedAreaA (AreaA)
+Group:Switch:OR(ON,OFF) LedAreaB (AreaB)
 Group BookablePlace (Place)
 
 // parking entrance
@@ -21,27 +25,30 @@ String exitCamera "Exit camera" (Exit)
 //TODO : add digitcode and string for classic paiment
 
 // first area (with reserved places)
-Number panel1A (AreaA)
+Group Panel1 (Parking)
+Number panel1A (AreaA,Panel1)
 
-Group Place1A01 (AreaA, BookablePlace)
-Switch carDetector1A01 "Car detector" (Place1A01)
-Switch led1A01 "Led" (Place1A01)
-Switch barriere1A01 "Barriere" (Barriere)
-String camera1A01 "Camera" (Place1A01)
-Number infrared1A01 "Infrared sensor" (Place1A01)
-Number digicode1A01 "Digitcode" (Place1A01)
 
-Group Place1A02 (AreaA, Place)
-Switch carDetector1A02 "Car detector" (Place1A02)
-Switch led1A02 "Led" (Place1A02)
+Group Place1 (AreaA, BookablePlace)
+Switch carDetector1A_1 "Car detector" (DetectorsAreaA,Place1)
+Switch led1A_1 "Led" (LedAreaA,Place1)
+Switch barriere1A_1 "Barriere"
+String camera1A_1 "Camera" (Place1)
+Number infrared1A_1 "Infrared sensor" (Place1)
+Number digitcode1A_1 "Digitcode" (Place1)
+
+Group Place2 (AreaA, Place)
+Switch carDetector1A_2 "Car detector" (DetectorsAreaA,Place2)
+Switch led1A_2 "Led" (LedAreaA,Place2)
+
 
 // second area (without bookable place)
-Number panel1B (AreaB)
+Number panel1B (AreaB,Panel1)
 
-Group Place1B03 (AreaB, Place)
-Switch carDetector1B03 "Car detector" (Place1B03)
-Switch led1B03 "Led" (Place1B03)
+Group Place3 (AreaB, Place)
+Switch carDetector1B_3 "Car detector" (DetectorsAreaB,Place3)
+Switch led1B_3 "Led" (LedAreaB,Place3)
 
-Group Place1B04 (AreaB, Place)
-Switch carDetector1B04 "Car detector" (PlaceAB04)
-Switch led1B04 "Led" (PlaceAB04)
+Group Place4 (AreaB, Place)
+Switch carDetector1B_4 "Car detector" (DetectorsAreaB,Place4)
+Switch led1B_4 "Led" (LedAreaB,Place4)

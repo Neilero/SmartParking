@@ -3,30 +3,90 @@ import org.eclipse.smarthome.model.script.ScriptServiceUtil
 val FileTag = "Smart Parking - Phone services rules"
 
 var bookedPlace = null
-var bookingDigicode = null
-var bookingIRCode   = null
+var bookedPlaceDigicode = null
+var bookedPlaceIRCode   = null
 var paiementDone = false
 
+val userImmat = "ABCDEF"    // Immatriculation of the phone's user
+
+rule "Booking place changed"
+when
+    Item bookingPlace changed 
+then
+    bookedPlace = triggeringItem.state
+end
+
+rule "Booking digicode changed"
+when
+    Item bookingDigicode changed 
+then
+    bookedPlaceDigicode = triggeringItem.state
+end
+
+rule "Booking IR code changed"
+when
+    Item bookingPlace changed 
+then
+    bookingIRCode = triggeringItem.state
+end
 
 rule "Réserver une place"
 when
     Item bookPlace changed from OFF to ON
 then
-    //TODO : see how to set the booking's digit and IR codes
+    if (bookedPlace == null) {
+        while (BookingInfo[0] != null) {
+            Thread::sleep(1000) // wait 1sec while another booking is beeing treated
+        }
+
+        BookingInfo[0] = userImmat
+        BookingRequest.sendCommand(ON)
+    }
 end 
 
+rule "Réservation traité"
+when
+    Item BookingRequest changed from ON to OFF
+then
+    if (BookingInfo[0] == userImmat) {
+        // store the booked place's infos
+        bookingPlace.sendCommand(BookingInfo[1])
+        bookingDigicode.sendCommand(BookingInfo[2])
+        bookingIRCode.sendCommand(BookingInfo[3])
+
+        // reset BookingInfo for new booking
+        for (int i=0; i<BookingInfo.size(); i++) {
+            BookingInfo[i] = null
+        }
+    }
+end
 
 rule "Annuler une réservation"
 when
     Item bookPlace changed from ON to OFF
 then
-    //TODO : send command to cancel reservation
+    if (bookedPlace != null) {
+        while (UnbookingInfo[0] != null) {
+            Thread::sleep(1000) // wait 1sec while another unbooking is beeing treated
+        }
 
-    // reset vars
-    bookedPlace = null
-    bookingDigicode = null
-    bookingIRCode   = null
-    paiementDone = false
+        UnbookingInfo[0] = userImmat
+        UnbookingInfo[1] = bookedPlaceDigicode
+        UnbookingRequest.sendCommand(ON)
+    }
+end
+
+rule "Annulation traité"
+when
+    Item UnbookingRequest changed from ON to OFF
+then
+    if (UnbookingInfo[0] == userImmat) {
+        // reset vars
+        bookingPlace.sendCommand(null)
+        bookingDigicode.sendCommand(null)
+        bookingIRCode.sendCommand(null)
+        paiementDone = false
+    }
 end
 
 rule "Utiliser le digicode"
@@ -53,7 +113,8 @@ rule "Effectuer le paiement de la place"
 when
     Item payPlace changed
 then
-    if (bookedPlace != null) {
+    if (bookedPlace != null && !paiementDone) {
         //TODO see how to send command for paiement
+        paiementDone = true
     }
 end

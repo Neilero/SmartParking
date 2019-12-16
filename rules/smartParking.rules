@@ -1,0 +1,375 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
+import org.eclipse.smarthome.core.library.items.StringItem
+import java.util.*
+import java.lang.*
+
+val TAG_FileName = "smartParking.rules"
+val NbplacesA = 2
+val NbplacesB = 2
+val NbBookablePlaces = 1
+var Number NbplacesAdispo 
+var Number NbplacesBdispo
+var Number Nbplacestotal 
+
+var HashMap<String, ArrayList<Object>> bookablePlacesInfo = new HashMap<String, ArrayList<Object>>()
+var ArrayList<Object> BookingInfo = new  ArrayList<Object>(4)
+var ArrayList<Object> UnbookingInfo = new  ArrayList<Object>(2)
+var ArrayList<Object> DispoPlaces = new  ArrayList<Object>(NbBookablePlaces)
+
+var bookedPlace = null
+var bookedPlaceDigicode = null
+var bookedPlaceIRCode   = null
+var paiementDone = false
+
+val userImmat = "ABCDEF"    // Immatriculation of the phone's user
+
+val initSensors = [ |
+    entryPanel.postUpdate(4)
+    panel1A.postUpdate(2)   
+    panel1B.postUpdate(2) 
+    carDetector1A_1.postUpdate(OFF)
+    carDetector1A_2.postUpdate(OFF) 
+    carDetector1B_3.postUpdate(OFF)
+    carDetector1B_4.postUpdate(OFF)
+    led1A_1.postUpdate(OFF)
+    led1A_2.postUpdate(OFF)
+    led1B_3.postUpdate(OFF)
+    led1B_4.postUpdate(OFF)
+]
+
+val getPlace = [ String name, String separator |    
+    var int j
+    j=name.substringAfter(separator)
+	return Integer::parseInt(j)
+]
+//rule "Démarrage de openHAB" ligne106
+rule "Démarrage de openHAB"
+when
+    System started
+then
+    logInfo(TAG_FileName, "Rule : Démarrage de openHAB")
+    NbplacesAdispo = NbplacesA
+    NbplacesBdispo = NbplacesB
+    initSensors.apply()
+end
+//rule "Arrêt de openHAB"  ligne137
+rule "Arrêt de openHAB" 
+when
+    System shuts down
+then
+    logInfo(TAG_FileName, " Rule : Arrêt de openHAB")
+    // sauvegarder les états des items et le contexte
+end
+
+rule "decrementer places disponibles dans la zone A" 
+when
+    Member of DetectorsAreaA changed from OFF to ON
+then
+    logInfo(TAG_FileName, "Rule : decrementer places disponibles dans la zone A")
+    NbplacesAdispo = NbplacesAdispo - 1
+    panel1A.postUpdate(NbplacesAdispo)
+    logInfo(TAG_FileName,triggeringItem.name)
+    var PlaceIn = getPlace.apply(triggeringItem.name, "_")
+    LedAreaA.members.forEach[ ledSensor | 
+        var jledSensor = getPlace.apply(ledSensor.name, "_")    
+        if ( jledSensor == PlaceIn ) {
+            ledSensor.sendCommand(ON)
+        } 
+    ] 
+end
+
+rule "Incrementer places disponibles dans la zone A" 
+when
+    Member of DetectorsAreaA changed from ON to OFF 
+then
+    logInfo(TAG_FileName, "Rule : Incrementer places disponibles dans la zone A")
+    NbplacesAdispo = NbplacesAdispo + 1
+    panel1A.postUpdate(NbplacesAdispo) 
+    var PlaceIn = getPlace.apply(triggeringItem.name, "_")
+    LedAreaA.members.forEach[ ledSensor | 
+        var jledSensor = getPlace.apply(ledSensor.name, "_")    
+        if ( jledSensor == PlaceIn ) {
+            ledSensor.sendCommand(OFF)
+        } 
+    ] 
+end
+rule "decrementer places disponibles dans la zone B" 
+when
+    Member of DetectorsAreaB changed from OFF to ON
+then
+    logInfo(TAG_FileName, "Rule : decrementer places disponibles dans la zone B")
+    NbplacesBdispo = NbplacesBdispo - 1
+    panel1B.postUpdate(NbplacesBdispo)
+    var PlaceIn = getPlace.apply(triggeringItem.name, "_")
+    LedAreaB.members.forEach[ ledSensor | 
+        var jledSensor = getPlace.apply(ledSensor.name, "_")    
+        if ( jledSensor == PlaceIn ) {
+            ledSensor.sendCommand(ON)
+        } 
+    ] 
+end
+
+rule "Incrementer places disponibles dans la zone B" 
+when
+    Member of DetectorsAreaB changed from ON to OFF 
+then
+    logInfo(TAG_FileName, "Rule : Incrementer places disponibles dans la zone B")
+    NbplacesBdispo = NbplacesBdispo + 1
+    panel1B.postUpdate(NbplacesBdispo) 
+    var PlaceIn = getPlace.apply(triggeringItem.name, "_")
+    LedAreaB.members.forEach[ ledSensor | 
+        var jledSensor = getPlace.apply(ledSensor.name, "_")    
+        if ( jledSensor == PlaceIn ) {
+            ledSensor.sendCommand(OFF)
+        } 
+    ] 
+end
+rule "Mettre a jour le nombre total de places dans le premier etage" 
+when
+    Member of Panel1 changed
+then
+    logInfo(TAG_FileName, "Rule : Mettre a jour le nombre total de places dans le premier etage")
+    Nbplacestotal = NbplacesBdispo + NbplacesAdispo
+    entryPanel.postUpdate(Nbplacestotal)
+end
+
+rule "Detection voiture devant une place reservable"
+when
+    Member of BookableCamera changed
+then 
+    logInfo(TAG_FileName, "Rule : Detection voiture devant une place reservable")
+    var PlaceIn = getPlace.apply(triggeringItem.name, "_")
+    var ImmatSaw =  triggeringItem.state
+    var PlaceInInfo = bookablePlacesInfo.getOrDefault(PlaceIn, null)
+    if ( PlaceInInfo != null ) {
+        if (PlaceInInfo.get(0) == ImmatSaw){
+            BookableBarriere.members.forEach[ barriere | 
+                var barrierePlace = getPlace.apply(barriere.name, "_")    
+                if ( barrierePlace == PlaceIn ) {
+                    barriere.sendCommand(ON)
+                    createTimer(now.plusSeconds(3)) [
+                        barriere.sendCommand(OFF)
+                    ]
+                } 
+            ]             
+        }
+    }
+end
+
+rule "Detection infrarouge devant une place reservable"
+when
+    Member of BookableInfrared changed
+then 
+    logInfo(TAG_FileName, "Rule : Detection infrarouge devant une place reservable")
+    var PlaceIn = getPlace.apply(triggeringItem.name, "_")
+    var InputCode =  triggeringItem.state
+    var PlaceInInfo = bookablePlacesInfo.getOrDefault(PlaceIn, null)
+    if ( PlaceInInfo != null ) {
+        if (PlaceInInfo.get(1) == InputCode){
+            BookableBarriere.members.forEach[ barriere | 
+                var barrierePlace = getPlace.apply(barriere.name, "_")    
+                if ( barrierePlace == PlaceIn ) {
+                    barriere.sendCommand(ON)
+                    createTimer(now.plusSeconds(3)) [
+                        barriere.sendCommand(OFF)
+                    ]
+                } 
+            ]             
+        }
+    }
+end
+
+rule "Detection digicode devant une place reservable"
+when
+    Member of BookableDigicode changed
+then 
+    logInfo(TAG_FileName, "Rule : Detection digicode devant une place reservable")
+    var PlaceIn = getPlace.apply(triggeringItem.name, "_")
+    var InputCode =  triggeringItem.state
+    var PlaceInInfo = bookablePlacesInfo.getOrDefault(PlaceIn, null)
+    if ( PlaceInInfo != null ) {
+        if (PlaceInInfo.get(2) == InputCode){
+            BookableBarriere.members.forEach[ barriere | 
+                var barrierePlace = getPlace.apply(barriere.name, "_")    
+                if ( barrierePlace == PlaceIn ) {
+                    barriere.sendCommand(ON)
+                    createTimer(now.plusSeconds(3)) [
+                        barriere.sendCommand(OFF)
+                    ]
+                } 
+            ]             
+        }
+    }
+end
+
+rule "reserver une place reservable"
+when
+    BookingRequest changed from OFF to ON
+then
+    logInfo(TAG_FileName, " Rule : Reserver une place reservable")
+    var int hasChanged = 1
+    var int InfraredRandom = 10000000 + (int)(Math.random() * ((99999999 - 10000000) + 1))
+    var int DigicodeRandom = 1000 + (int)(Math.random() * ((9999 - 1000) + 1))
+    Set cles = BookingInfo.keySet()   // verifier si les valeurs sont uniques
+    while (hasChanged == 1){
+        hasChanged = 0
+        Iterator it = cles.iterator()
+        while (it.hasNext()){
+            Object cle = it.next()
+            Object Info = map.get(cle)
+            if (InfraredRandom == Info.get(1) ){
+                InfraredRandom = 10000000 + (int)(Math.random() * ((99999999 - 10000000) + 1))
+                hasChanged = 1
+            }
+            if (DigicodeRandom == Info.get(2) ){
+                DigicodeRandom = 1000 + (int)(Math.random() * ((9999 - 1000) + 1))
+                hasChanged = 1
+            }      
+        }
+    }
+    BookingInfo.add(1,InfraredRandom)//ajouter l'infrarouge
+    BookingInfo.add(2,DigicodeRandom)//ajouter le digicode 
+    var int place =  DispoPlaces.get(0)
+    BookingInfo.add(3, place) //ajouter le nbr de places 
+    DispoPlaces.remove(place)
+    bookablePlacesInfo.update({ place : BookingInfo }) //ajouter dans le dictionnaire les info de reservation
+    BookingRequest.sendCommand(OFF)
+end
+
+rule "retirer une reservation"    
+when
+    UnbookingRequest changed from OFF to ON
+then
+    logInfo(TAG_FileName, " Rule : Retirer une reservation")
+    var int digicode = UnbookingInfo.get(1)
+    Set cles = BookingInfo.keySet()
+    Iterator it = cles.iterator()
+    while (it.hasNext()){
+        Object cle = it.next()
+        Object Info = map.get(cle)
+        if (digicode == Info.get(2) ){
+            DispoPlaces.add(Info.get(3))
+            bookablePlacesInfo.remove(Info.get(3))
+        }     
+    }
+    UnbookingRequest.sendCommand(OFF)
+end
+rule "Booking place changed"
+when
+    Item bookingPlace changed 
+then
+    logInfo(TAG_FileName, " Rule : Booking place changed")
+    bookedPlace = triggeringItem.state
+end
+
+rule "Booking digicode changed"
+when
+    Item bookingDigicode changed 
+then
+    logInfo(TAG_FileName, " Rule : Booking digicode changed")
+    bookedPlaceDigicode = triggeringItem.state
+end
+
+rule "Booking IR code changed"
+when
+    logInfo(TAG_FileName, " Rule : Booking IR code changed")
+    Item bookingPlace changed 
+then
+    bookingIRCode = triggeringItem.state
+end
+
+rule "Réserver une place"
+when
+    Item bookPlace changed from OFF to ON
+then
+    logInfo(TAG_FileName, " Rule : Reserver une place")
+    if (bookedPlace == null) {
+        while (BookingInfo[0] != null) {
+            Thread::sleep(1000) // wait 1sec while another booking is beeing treated
+        }
+
+        BookingInfo[0] = userImmat
+        BookingRequest.sendCommand(ON)
+    }
+end 
+
+rule "Réservation traité"
+when
+    Item BookingRequest changed from ON to OFF
+then
+    logInfo(TAG_FileName, " Rule : Reservation traite")
+    if (BookingInfo[0] == userImmat) {
+        // store the booked place's infos
+        bookingPlace.sendCommand(BookingInfo[1])
+        bookingDigicode.sendCommand(BookingInfo[2])
+        bookingIRCode.sendCommand(BookingInfo[3])
+
+        // reset BookingInfo for new booking
+        for (int i=0; i<BookingInfo.size(); i++) {
+            BookingInfo[i] = null
+        }
+    }
+end
+
+rule "Annuler une réservation"
+when
+    Item bookPlace changed from ON to OFF
+then
+    logInfo(TAG_FileName, " Rule : Annuler une reservation")
+    if (bookedPlace != null) {
+        while (UnbookingInfo[0] != null) {
+            Thread::sleep(1000) // wait 1sec while another unbooking is beeing treated
+        }
+
+        UnbookingInfo[0] = userImmat
+        UnbookingInfo[1] = bookedPlaceDigicode
+        UnbookingRequest.sendCommand(ON)
+    }
+end
+
+rule "Annulation traité"
+when
+    Item UnbookingRequest changed from ON to OFF
+then
+    logInfo(TAG_FileName, " Rule : Annulation traite")
+    if (UnbookingInfo[0] == userImmat) {
+        // reset vars
+        bookingPlace.sendCommand(null)
+        bookingDigicode.sendCommand(null)
+        bookingIRCode.sendCommand(null)
+        paiementDone = false
+    }
+end
+
+rule "Utiliser le digicode"
+when
+    Item enterCode changed
+then
+    logInfo(TAG_FileName, " Rule : Utiliser le digicode")
+    if (bookedPlace != null) {
+        val bookedPlaceDigicode = ScriptServiceUtil.getItemRegistry.getItem("digicode" + bookedPlace)
+        bookedPlaceDigicode.sendCommand(bookingDigicode)
+    }
+end
+
+rule "Emettre le signal infrarouge"
+when
+    Item emitIRCode changed
+then
+    logInfo(TAG_FileName, " Rule : Emettre le signal infrarouge")
+    if (bookedPlace != null) {
+        val bookedPlaceIRSensor = ScriptServiceUtil.getItemRegistry.getItem("infrared" + bookedPlace)
+        bookedPlaceIRSensor.sendCommand(bookingIRCode)
+    }
+end
+
+rule "Effectuer le paiement de la place"
+when
+    Item payPlace changed
+then
+    logInfo(TAG_FileName, " Rule : Effectuer le paiement de la place")
+    if (bookedPlace != null && !paiementDone) {
+        //TODO see how to send command for paiement
+        paiementDone = true
+    }
+end

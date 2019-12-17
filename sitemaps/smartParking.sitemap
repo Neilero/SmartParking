@@ -4,15 +4,69 @@ sitemap smartParking label="Smart Parking Sitemap" {
         Switch item=bookPlace label="Réserver une place"
 
         Frame label="Booking actions" visibility=[bookPlace==ON] {
-            Text   item=bookPlace label="Numéro de la place réservé"
+            Text   item=bookingPlace label="Place réservée[%s]"
 
             Switch item=enterCode label="Utiliser le digicode"
-            Number item=bookingDigicode label="Digicode de la place"
+            Text item=bookingDigicode label="Digicode de la place réservée [%s]"
 
             Switch item=emitIRCode label="Emettre le signal infrarouge"
-            Number item=bookingIRCode label="Code IR de la place"
+            Text item=bookingIRCode label="Code IR de la place réservée [%s]"
             
-            Switch item=payPlace label="Payer la place" 
+            Switch item=payPlace label="Payer la place"
         }
     }
+
+    Frame label="Global Status"  {
+        Text item=entryPanel label="Nombre de places totales disponibles au 1er etage [%d /4] "
+    }
+    
+    Frame label="Floor 1" {
+
+        Frame label="Entry Door"{
+            Switch item=DemandEntry label="Présenter une voiture  de la porte d'entrer" icon= "frontdoor"
+            Text item= entryCamera label="Caméra de la porte d'entrée:  [%s]" icon="camera"
+            Switch item=entryBarriere label="Barriere d'entrée" icon="garagedoor"
+        }
+
+        Frame label="Area A" {
+            Text item=panel1A label="Nombre de places disponibles dans la zone A [%d /2]"
+
+            Frame label="Place 1A_1" {
+                Switch item=carDetector1A_1 label="Car detector"
+                Switch item=led1A_1 label="Led" icon="light"
+                Switch item=barriere1A_1 label="Barriere" icon="garagedoor"
+                Text item=camera1A_1 label="Dernière plaque d'immatriculation vue [%s]"
+                Text item=infrared1A_1 label="Dernier signal IR capté [%s]" 
+                Text item=digicode1A_1 label="Dernier Digicode entré [%s]"
+            }
+
+            Frame label="Place 1A_2" {
+                Switch item=carDetector1A_2 label="Car detector" 
+                Switch item=led1A_2 label="Led" icon="light"
+            }
+
+        }
+
+        Frame label="Area B" {
+            Text item=panel1B label="Nombre de places disponibles dans la zone B [%d /2]"
+
+            Frame label="Place 1B_3" {
+                Switch item=carDetector1B_3 label="Car detector"
+                Switch item=led1B_3 label="Led" icon="light"
+            }
+
+            Frame label="Place 1B_4" {
+                Switch item=carDetector1B_4 label="Car detector" 
+                Switch item=led1B_4 label="Led" icon="light" 
+            }
+
+        }
+
+        Frame label="Exit Door" {
+            Switch item=DemandExit label="Présenter une voiture  de la porte d'entrer" icon= "frontdoor"
+            Text item= exitCamera label="camera de la porte de sortie [%s] " icon="camera"
+            Switch item=exitBarriere label="Barriere de sortie" icon="garagedoor"
+        }
+    }
+    
 }
